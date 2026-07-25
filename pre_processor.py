@@ -125,14 +125,19 @@ def build_event_features(df: pd.DataFrame) -> pd.DataFrame:
 # Anything outside this list gets bucketed as "other" to keep the vector small.
 KEY_OPS = [
     "CreateFile", "CreateFileMapping", "ReadFile", "WriteFile",
-    "Thread Create", "Process Create", "LoadImage", "VirtualAlloc",
+    "Thread Create", "Process Create", "Load Image", "VirtualAlloc",
     "WriteProcessMemory", "CreateRemoteThread", "QueryBasicInformationFile",
     "QueryStandardInformationFile", "CloseFile", "FileSystemControl",
+    "SetRenameInformationFile",  # the actual file-rename-to-.encrypted operation
 ]
 
 
 def op_bucket(op: str) -> str:
-    return op if op in KEY_OPS else "Other"
+    if op in KEY_OPS:
+        return op
+    if isinstance(op, str) and op.startswith("Reg"):
+        return "Registry"  # group all Reg* noise so it stops diluting "Other"
+    return "Other"
 
 
 def windowize(events: pd.DataFrame, window: int, stride: int) -> pd.DataFrame:
@@ -171,7 +176,7 @@ def windowize(events: pd.DataFrame, window: int, stride: int) -> pd.DataFrame:
 
             # operation frequency vector -- the core "sequence shape" signal
             op_counts = w["op_bucket"].value_counts(normalize=True)
-            for op in KEY_OPS + ["Other"]:
+            for op in KEY_OPS + ["Registry", "Other"]:
                 feat[f"op_frac_{op}"] = op_counts.get(op, 0.0)
 
             rows.append(feat)
@@ -191,7 +196,7 @@ def main():
     ap.add_argument("--stride", type=int, default=5, help="step size between windows")
     args = ap.parse_args()
 
-    df = load_procmon_csv("svchost_first_run.csv")
+    df = load_procmon_csv(args.input)
     events = build_event_features(df)
     windows = windowize(events, args.window, args.stride)
     windows.to_csv(args.output, index=False)
