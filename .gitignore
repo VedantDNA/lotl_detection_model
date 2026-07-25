@@ -1,1 +1,28 @@
+# --- Python ---
+__pycache__/
+*.pyc
 .venv/
+venv/
+*.egg-info/
+
+# --- Datasets / raw captures ---
+dataset_explorer/
+*.csv
+*.log
+
+# --- svchost / notepad raw logs (belt and suspenders, in case they live outside dataset_explorer/) ---
+svchost*.csv
+notepad*.csv
+*svchost*.csv
+*Logfile*.csv
+
+# --- Generated feature outputs ---
+windowed_features*.csv
+scored_output.csv
+scored_*.csv
+labeled_combined.csv
+
+# --- OS / editor junk ---
+.DS_Store
+.idea/
+.vscode/
